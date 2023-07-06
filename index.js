@@ -13,12 +13,17 @@ await login()
 
 let lastSet = null;
 async function doCycle() {
-    if(!auth.ready) { return }
+    if (!auth.ready) { return }
     let username = (await getLatestFollower(info.username)).username;
-    if(lastSet==username) { return }
+    if (lastSet == username) { return }
 
-    try { setAbtMeFollower(username); lastSet = username; console.log('new follower:',username) }
-    catch (e) {console.error(e); login() }
+    try {
+        let res = await setAbtMeFollower(username);
+        let ok = res.ok
+        console.log(await res.statusText)
+        if (ok) { lastSet = username; console.log('new follower:', username) } else { login() }
+    }
+    catch (e) { console.error(e); login() }
 }
 setInterval(doCycle, 1000)
 
@@ -51,25 +56,26 @@ function loginRequest() {
 }
 function sessionRequest() {
     return fetch("https://scratch.mit.edu/session/", {
-  "headers": {
-    "accept": "*/*",
-    "accept-language": "en-US,en;q=0.9",
-    "sec-ch-ua": "\"Chromium\";v=\"112\", \"Google Chrome\";v=\"112\", \"Not:A-Brand\";v=\"99\"",
-    "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": "\"macOS\"",
-    "sec-fetch-dest": "empty",
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "same-origin",
-    "x-requested-with": "XMLHttpRequest",
-    "cookie": auth.cookie,
-    "Referer": "https://scratch.mit.edu/",
-    "Referrer-Policy": "strict-origin-when-cross-origin"
-  },
-  "body": null,
-  "method": "GET"
-});
+        "headers": {
+            "accept": "*/*",
+            "accept-language": "en-US,en;q=0.9",
+            "sec-ch-ua": "\"Chromium\";v=\"112\", \"Google Chrome\";v=\"112\", \"Not:A-Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+            "x-requested-with": "XMLHttpRequest",
+            "cookie": auth.cookie,
+            "Referer": "https://scratch.mit.edu/",
+            "Referrer-Policy": "strict-origin-when-cross-origin"
+        },
+        "body": null,
+        "method": "GET"
+    });
 }
 async function login() {
+    console.log('LOGGING IN...')
     auth.ready = false;
     let res = await loginRequest()
     let json = await res.json()
@@ -83,6 +89,7 @@ async function login() {
 
     auth.cookie = auth.sessionIdCookie + ' scratchcsrftoken=a; permissions=' + encodeURIComponent(JSON.stringify(json.permissions)) + ';'
     auth.ready = true;
+    console.log('LOGIN SUCCESS.')
 }
 
 function setAboutMe(text) {
@@ -99,7 +106,7 @@ function setAboutMe(text) {
             "sec-fetch-site": "same-origin",
             "x-csrftoken": "a",
             "x-requested-with": "XMLHttpRequest",
-            "cookie":auth.cookie,
+            "cookie": auth.cookie,
             // "cookie": "scratchsessionsid=\".eJxVj8FugzAQRP-Fc0sNeIOdW7i2yiFqK_WEbO8SHMBGYBqpVf-9tsQl15ndNzO_2bbS4tRE2TGzYz8XLHvKgh_IRUEqcdDAGBgmeXdALTiWHcgaRE2ypOObarZPg836Hbp3MGe0ON6K-TK9fkTM6K_WPds5kgpZ5jIveJWDjE6rttC3Kbq1GG1gsq45jw7elLv6NtiJfrxLrU4TLdaolzPd2y-_DI_vvVr7eIQgRIWaalnyCpkSZcWx4h0IrhUAAyi0kFqlcbQG4_1gE_wegYSPSK1MnJ9qJY1ciOnBepfvxppfaB53sdmP__4BG4lqZQ:1qHLFp:SqoRTqYyJex5NWBPJ9QFjmSgDsY\"; scratchcsrftoken=tlWWgd5lP7KV6Q3ee7zzTCrqodWmHXgp; permissions=%7B%22admin%22%3Afalse%2C%22scratcher%22%3Atrue%2C%22new_scratcher%22%3Afalse%2C%22invited_scratcher%22%3Afalse%2C%22social%22%3Atrue%2C%22educator%22%3Afalse%2C%22educator_invitee%22%3Afalse%2C%22student%22%3Afalse%2C%22mute_status%22%3A%7B%7D%7D",
             "Referer": "https://scratch.mit.edu/users/ilhp10/",
             "Referrer-Policy": "strict-origin-when-cross-origin"
@@ -109,12 +116,12 @@ function setAboutMe(text) {
         "method": "PUT"
     });
 }
-function followersRequest(user,limit) {
-    if(!limit) {limit = 20}
+function followersRequest(user, limit) {
+    if (!limit) { limit = 20 }
     return fetch(`https://api.scratch.mit.edu/users/${user}/followers?limit=${limit}&rand=${Math.random()}`);
 }
 async function getLatestFollower(user) {
-    return (await (await followersRequest(user,1)).json())[0]
+    return (await (await followersRequest(user, 1)).json())[0]
 }
 
 function setAbtMeFollower(follower) {
